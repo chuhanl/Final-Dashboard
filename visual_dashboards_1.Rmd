@@ -11,7 +11,7 @@ library(flexdashboard)
 
 ###
 library(ggplot2)
-myWeb="https://github.com/EvansDataScience/VAforPM_Dashboard/raw/main/"
+myWeb="https://github.com/chuhanl/Final-Dashboard/raw/main/"
 uniVars=readRDS(file=url(paste0(myWeb,"acs2019marstat.rds")))
 ```
 
@@ -26,6 +26,7 @@ Row {data-width=650}
 
 
 ```{r}
+marstOrd=uniVars[order(uniVars$Percent),'MaritalStatus']
 base = ggplot(data = uniVars, 
              aes(x = MaritalStatus,
                  y = Percent))
@@ -58,7 +59,7 @@ plot3 = plot2 + scale_y_continuous(breaks=c(0,20,40),
 plot4 = plot3 + theme(plot.title = element_text(hjust = 0.5))
 
 #annotate the bars
-LABELS=paste0(round(tableFreq$Percent,2), '%')
+LABELS=paste0(round(uniVars$Percent,2), '%')
 
 plot5 = plot4 + geom_text(hjust=0,
                           size = 5,

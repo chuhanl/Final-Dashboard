@@ -1,6 +1,5 @@
 
-Prepare the data:
-
+1. Univariate Plot data:
 
 ```{r, message=FALSE, results='hide'}
 library(rio)
@@ -20,16 +19,37 @@ names(tableFreq)=c("MaritalStatus","Count")
 tableFreq$Percent=as.vector(propT)
 ```
 
-
-
 Saves as a file:
-
 ```{r}
-#saving
-
 saveRDS(tableFreq,file = 'acs2019marstat.rds')
-
 ```
 
 
+2. Bivariate Plot data:
 
+```{r}
+SexMarst=table(mydata$marst,mydata$sex)
+SexMarst[1,1]=SexMarst[1,1]+SexMarst[2,1]
+SexMarst[1,2]=SexMarst[1,2]+SexMarst[2,2]
+SexMarst[3,1]=SexMarst[3,1]+SexMarst[4,1]
+SexMarst[3,2]=SexMarst[3,2]+SexMarst[4,2]
+SexMarst=SexMarst[-2,]
+SexMarst=SexMarst[-3,]
+newRowNames=c('Married','Separated/divorced','Widowed','Never married/single')
+newColNames=c('Male','Female')
+rownames(SexMarst) <- newRowNames
+colnames(SexMarst) <- newColNames
+library(magrittr)
+SexMarst_mgCol=prop.table(SexMarst,
+                            margin = 2)%>%round(.,3)
+SexMarstDF=as.data.frame(SexMarst)
+names(SexMarstDF)=c("MaritalStatus","Sex","Counts")
+SexMarstDF$Percent=as.data.frame(SexMarst_mgCol)[,3]
+SexMarstDF$MaritalStatus=factor(SexMarstDF$MaritalStatus,
+                           levels=c('Widowed','Separated/divorced','Married','Never married/single'))
+```
+
+Saves as a file:
+```{r}
+saveRDS(SexMarstDF,file = 'SexMarstDF.rds')
+```
