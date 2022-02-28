@@ -1,0 +1,230 @@
+---
+title: "PUBPOL 543 Final Dashbord"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+
+###
+library(ggplot2)
+myWeb="https://github.com/EvansDataScience/VAforPM_Dashboard/raw/main/"
+uniVars=readRDS(file=url(paste0(myWeb,"acs2019marstat.rds")))
+```
+
+[comment]: # (code for plots in this row)
+
+Row {data-width=650}
+-----------------------------------------------------------------------
+
+
+
+### Univariate Plot
+
+
+```{r}
+base = ggplot(data = uniVars, 
+             aes(x = MaritalStatus,
+                 y = Percent))
+base= base + scale_x_discrete(limits=marstOrd)
+base= base + theme_classic()
+
+plot1 = base + geom_bar(fill ="bisque1",
+                        stat = 'identity')
+plot1 = plot1 + theme(axis.text.y = element_text(size = 8,hjust = 1,face='bold'))
+```
+
+```{r}
+#add titles
+titleText='Figure 1: Marital Status in the U.S. in 2019'
+sourceText='Source: 2019 American Community Survey (ACS)'
+
+plot2 = plot1 + labs(title=titleText,
+                     x =NULL, 
+                     y = NULL,
+                     caption = sourceText)
+
+#customize the vertical axes
+library(scales)
+
+plot3 = plot2 + scale_y_continuous(breaks=c(0,20,40),
+                                   limits = c(0, 50),
+                                   labels=unit_format(suffix = '%')) 
+
+#adjust title position
+plot4 = plot3 + theme(plot.title = element_text(hjust = 0.5))
+
+#annotate the bars
+LABELS=paste0(round(tableFreq$Percent,2), '%')
+
+plot5 = plot4 + geom_text(hjust=0,
+                          size = 5,
+                          aes(y = Percent,
+                              label = LABELS))
+
+plot5 = plot5 + coord_flip()
+plot5
+```
+
+
+[comment]: # (code for plots in this row)
+
+### Bivariate Plot
+
+
+```{r}
+library(rio)
+
+# collecting the data
+location='https://github.com/chuhanl/Visual-Analytics/raw/main/'
+file='ACS%202019%20weighted%20subsample.dta'
+link=paste0(location,file)
+mydata=import(link)
+```
+
+```{r}
+#sex table of marital status counts
+(SexMarst=table(mydata$marst,mydata$sex))
+
+#reorganize data
+SexMarst[1,1]=SexMarst[1,1]+SexMarst[2,1]
+SexMarst[1,2]=SexMarst[1,2]+SexMarst[2,2]
+SexMarst[3,1]=SexMarst[3,1]+SexMarst[4,1]
+SexMarst[3,2]=SexMarst[3,2]+SexMarst[4,2]
+
+SexMarst=SexMarst[-2,]
+SexMarst=SexMarst[-3,]
+
+#rename rows and columns
+newRowNames=c('Married','Separated/divorced','Widowed','Never married/single')
+newColNames=c('Male','Female')
+rownames(SexMarst) <- newRowNames
+colnames(SexMarst) <- newColNames
+```
+
+```{r}
+# computing marginal percent (per column)
+library(magrittr)
+SexMarst_mgCol=prop.table(SexMarst,
+                            margin = 2)%>%round(.,3)
+```
+
+```{r}
+#making a data frame
+SexMarstDF=as.data.frame(SexMarst)
+names(SexMarstDF)=c("MaritalStatus","Sex","Counts")
+
+#adding marginal percents:
+SexMarstDF$Percent=as.data.frame(SexMarst_mgCol)[,3]
+```
+
+```{r}
+# reorder levels
+SexMarstDF$MaritalStatus=factor(SexMarstDF$MaritalStatus,
+                           levels=c('Widowed','Separated/divorced','Married','Never married/single'))
+
+library(ggplot2)
+base1=ggplot(data=SexMarstDF, 
+             aes(x=Sex, y=Percent,
+                 fill=MaritalStatus))
+```
+
+
+```{r}
+barStacked = base1 + geom_bar(stat = "identity",
+                              position = 'stack')
+```
+
+```{r}
+library(scales)
+barStacked= barStacked + geom_text(size = 4,
+                             position = position_stack(vjust = 0.5),
+                             aes(label=percent(Percent,accuracy = 0.1)))
+
+barStacked = barStacked + scale_y_continuous(labels = scales::percent)
+
+barStacked +labs(title="Gender Gap in Marital Status",fill="Marital Status")
+```
+
+Row {data-width=650}
+-----------------------------------------------------------------------
+### Map 
+
+```{r}
+# collecting the data
+library(rio)
+
+linkCSV='https://github.com/chuhanl/Deliverable-3/raw/main/wwmarstatus.csv'
+mydata=read.csv(linkCSV)
+```
+
+```{r}
+# standardization
+mydata$DIV_S=as.vector(scale(mydata$Divrate))
+mydata$RATIO_S=as.vector(scale(mydata$divtomarRatio))
+```
+
+```{r}
+# cluster the data using pam
+set.seed(123)
+
+library(cluster)
+vars=c('DIV_S','RATIO_S')
+
+distMatrix=cluster::daisy(mydata[,vars])
+          
+res.pam=cluster::pam(x=distMatrix,
+                     k = 3,
+                     cluster.only = F)
+
+mydata$cluster=as.factor(res.pam$clustering)
+```
+
+```{r}
+theVars=c('DIV_S','RATIO_S','cluster')
+aggregate(.~cluster,
+          data=mydata[,theVars],
+          FUN=median)
+
+mydata$cluster=factor(mydata$cluster,
+                           levels=c(1,2,3),
+                           labels=c("low","mid","high"), 
+                           ordered=T)
+```
+
+```{r}
+# open the map and add the data to the map
+linkMap="https://github.com/EvansDataScience/VAforPM_Spatial/raw/main/worldMap.geojson" 
+
+library(sf)
+mapWorld=read_sf(linkMap)
+
+mapWorldVars=merge(mapWorld,
+                   mydata, 
+                   by='ISO3')
+```
+
+
+```{r}
+library(ggplot2)
+
+base=ggplot(data=mapWorld) + geom_sf(fill='grey90',
+                                     color=NA) + theme_classic()
+```
+
+
+```{r}
+clusterMap= base + geom_sf(data=mapWorldVars,
+                           aes(fill=cluster),
+                           color=NA)
+
+theLegTitle="World_Order_of_Divorce_Rate\n(grey is missing)"
+
+clusterMap+ scale_fill_brewer(palette ='YlOrBr',
+                              name=theLegTitle)
+```
+
+

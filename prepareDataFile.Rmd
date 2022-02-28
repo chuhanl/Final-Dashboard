@@ -1,0 +1,35 @@
+
+Prepare the data:
+
+
+```{r, message=FALSE, results='hide'}
+library(rio)
+
+location='https://github.com/chuhanl/Visual-Analytics/raw/main/'
+file='ACS%202019%20weighted%20subsample.dta'
+link=paste0(location,file)
+mydata=import(link)
+absoluteT=table(mydata$marst,
+                exclude = 'nothing')
+newNames=c('Married, spouse present','Married, spouse absent','Separated','Divorced','Widowed','Never married/single')
+names(absoluteT)=newNames
+prop.table(absoluteT)
+propT=prop.table(absoluteT)*100
+tableFreq=as.data.frame(absoluteT)
+names(tableFreq)=c("MaritalStatus","Count")
+tableFreq$Percent=as.vector(propT)
+```
+
+
+
+Saves as a file:
+
+```{r}
+#saving
+
+saveRDS(tableFreq,file = 'acs2019marstat.rds')
+
+```
+
+
+
