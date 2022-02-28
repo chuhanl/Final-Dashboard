@@ -13,6 +13,8 @@ library(flexdashboard)
 library(ggplot2)
 myWeb="https://github.com/chuhanl/Final-Dashboard/raw/main/"
 uniVars=readRDS(file=url(paste0(myWeb,"acs2019marstat.rds")))
+biVars=readRDS(file=url(paste0(myWeb,"SexMarstDF.rds")))
+mapVars=readRDS(file=url(paste0(myWeb,"mapWorldVars.rds")))
 ```
 
 [comment]: # (code for plots in this row)
@@ -75,60 +77,8 @@ plot5
 
 ### Bivariate Plot
 
-
 ```{r}
-library(rio)
-
-# collecting the data
-location='https://github.com/chuhanl/Visual-Analytics/raw/main/'
-file='ACS%202019%20weighted%20subsample.dta'
-link=paste0(location,file)
-mydata=import(link)
-```
-
-```{r}
-#sex table of marital status counts
-(SexMarst=table(mydata$marst,mydata$sex))
-
-#reorganize data
-SexMarst[1,1]=SexMarst[1,1]+SexMarst[2,1]
-SexMarst[1,2]=SexMarst[1,2]+SexMarst[2,2]
-SexMarst[3,1]=SexMarst[3,1]+SexMarst[4,1]
-SexMarst[3,2]=SexMarst[3,2]+SexMarst[4,2]
-
-SexMarst=SexMarst[-2,]
-SexMarst=SexMarst[-3,]
-
-#rename rows and columns
-newRowNames=c('Married','Separated/divorced','Widowed','Never married/single')
-newColNames=c('Male','Female')
-rownames(SexMarst) <- newRowNames
-colnames(SexMarst) <- newColNames
-```
-
-```{r}
-# computing marginal percent (per column)
-library(magrittr)
-SexMarst_mgCol=prop.table(SexMarst,
-                            margin = 2)%>%round(.,3)
-```
-
-```{r}
-#making a data frame
-SexMarstDF=as.data.frame(SexMarst)
-names(SexMarstDF)=c("MaritalStatus","Sex","Counts")
-
-#adding marginal percents:
-SexMarstDF$Percent=as.data.frame(SexMarst_mgCol)[,3]
-```
-
-```{r}
-# reorder levels
-SexMarstDF$MaritalStatus=factor(SexMarstDF$MaritalStatus,
-                           levels=c('Widowed','Separated/divorced','Married','Never married/single'))
-
-library(ggplot2)
-base1=ggplot(data=SexMarstDF, 
+base1=ggplot(data=biVars, 
              aes(x=Sex, y=Percent,
                  fill=MaritalStatus))
 ```
@@ -154,47 +104,6 @@ Row {data-width=650}
 -----------------------------------------------------------------------
 ### Map 
 
-```{r}
-# collecting the data
-library(rio)
-
-linkCSV='https://github.com/chuhanl/Deliverable-3/raw/main/wwmarstatus.csv'
-mydata=read.csv(linkCSV)
-```
-
-```{r}
-# standardization
-mydata$DIV_S=as.vector(scale(mydata$Divrate))
-mydata$RATIO_S=as.vector(scale(mydata$divtomarRatio))
-```
-
-```{r}
-# cluster the data using pam
-set.seed(123)
-
-library(cluster)
-vars=c('DIV_S','RATIO_S')
-
-distMatrix=cluster::daisy(mydata[,vars])
-          
-res.pam=cluster::pam(x=distMatrix,
-                     k = 3,
-                     cluster.only = F)
-
-mydata$cluster=as.factor(res.pam$clustering)
-```
-
-```{r}
-theVars=c('DIV_S','RATIO_S','cluster')
-aggregate(.~cluster,
-          data=mydata[,theVars],
-          FUN=median)
-
-mydata$cluster=factor(mydata$cluster,
-                           levels=c(1,2,3),
-                           labels=c("low","mid","high"), 
-                           ordered=T)
-```
 
 ```{r}
 # open the map and add the data to the map

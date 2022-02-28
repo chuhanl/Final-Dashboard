@@ -53,3 +53,58 @@ Saves as a file:
 ```{r}
 saveRDS(SexMarstDF,file = 'SexMarstDF.rds')
 ```
+
+
+3. Map data:
+
+```{r}
+linkCSV='https://github.com/chuhanl/Deliverable-3/raw/main/wwmarstatus.csv'
+mydata=read.csv(linkCSV)
+mydata$DIV_S=as.vector(scale(mydata$Divrate))
+mydata$RATIO_S=as.vector(scale(mydata$divtomarRatio))
+```
+
+```{r}
+# cluster the data using pam
+set.seed(123)
+
+library(cluster)
+vars=c('DIV_S','RATIO_S')
+
+distMatrix=cluster::daisy(mydata[,vars])
+          
+res.pam=cluster::pam(x=distMatrix,
+                     k = 3,
+                     cluster.only = F)
+
+mydata$cluster=as.factor(res.pam$clustering)
+```
+
+```{r}
+theVars=c('DIV_S','RATIO_S','cluster')
+aggregate(.~cluster,
+          data=mydata[,theVars],
+          FUN=median)
+
+mydata$cluster=factor(mydata$cluster,
+                           levels=c(1,2,3),
+                           labels=c("low","mid","high"), 
+                           ordered=T)
+```
+
+```{r}
+# open the map and add the data to the map
+linkMap="https://github.com/EvansDataScience/VAforPM_Spatial/raw/main/worldMap.geojson" 
+
+library(sf)
+mapWorld=read_sf(linkMap)
+
+mapWorldVars=merge(mapWorld,
+                   mydata, 
+                   by='ISO3')
+```
+
+Saves as a file:
+```{r}
+saveRDS(mapWorldVars,file = 'mapWorldVars.rds')
+```
