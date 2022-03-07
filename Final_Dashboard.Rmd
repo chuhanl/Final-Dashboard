@@ -42,7 +42,7 @@ plot1 = plot1 + theme(axis.text.y = element_text(size = 8,hjust = 1,face='bold')
 
 ```{r}
 #add titles
-titleText='Figure 1: Marital Status in the U.S. in 2019'
+titleText='Marital Status in the U.S. in 2019'
 sourceText='Source: 2019 American Community Survey (ACS)'
 
 plot2 = plot1 + labs(title=titleText,
@@ -97,7 +97,7 @@ barStacked= barStacked + geom_text(size = 4,
 
 barStacked = barStacked + scale_y_continuous(labels = scales::percent)
 
-barStacked +labs(title="Gender Gap in Marital Status",fill="Marital Status")
+barStacked +labs(title="Gender Gap in Marital Status",fill="Marital Status",caption='Source: 2019 American Community Survey (ACS)')
 ```
 
 Row {data-width=650}
@@ -111,30 +111,26 @@ linkMap="https://github.com/EvansDataScience/VAforPM_Spatial/raw/main/worldMap.g
 
 library(sf)
 mapWorld=read_sf(linkMap)
-
-mapWorldVars=merge(mapWorld,
-                   mydata, 
-                   by='ISO3')
 ```
 
 
 ```{r}
-library(ggplot2)
-
 base=ggplot(data=mapWorld) + geom_sf(fill='grey90',
                                      color=NA) + theme_classic()
 ```
 
 
 ```{r}
-clusterMap= base + geom_sf(data=mapWorldVars,
+clusterMap= base + geom_sf(data=mapVars,
                            aes(fill=cluster),
                            color=NA)
 
 theLegTitle="World_Order_of_Divorce_Rate\n(grey is missing)"
 
-clusterMap+ scale_fill_brewer(palette ='YlOrBr',
+clusterMap = clusterMap + scale_fill_brewer(palette ='YlOrBr',
                               name=theLegTitle)
-```
 
+clusterMap +labs(title="Divorce Statistics by Country/Region",
+                caption="Source: https://en.wikipedia.org/wiki/Divorce_demography")
+```
 
